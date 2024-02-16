@@ -28,15 +28,19 @@ export const UserModele = db.define(
       unique: true,
       validate: { isEmail: true },
     },
+    role: {
+      type: DataTypes.STRING,
+      defaultValue: 'participant,',
+      get() {
+        const value = this.getDataValue('role')
+        return value.split(',')
+      },
+    },
     password: {
       type: DataTypes.STRING,
       allowNull: false,
       validate: {},
     },
-    // roles: {
-    //   type: DataTypes.ENUM('participant', 'organisateur', 'distributeur'),
-    //   defaultValue: 'participateur',
-    // },
     avatar: {
       type: DataTypes.STRING,
       defaultValue: '',
@@ -44,6 +48,7 @@ export const UserModele = db.define(
     telephone: {
       type: DataTypes.STRING,
       allowNull: false,
+      unique: true,
     },
     ville: {
       type: DataTypes.STRING,
@@ -54,9 +59,11 @@ export const UserModele = db.define(
     codeClient: {
       type: DataTypes.STRING,
       unique: true,
+      allowNull: false,
     },
     siteWeb: {
       type: DataTypes.STRING,
+      defaultValue: '',
     },
   },
   { tableName: 'Users', timestamps: true, underscored: true }

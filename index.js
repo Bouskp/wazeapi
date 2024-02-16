@@ -8,9 +8,12 @@ import morgan from 'morgan'
 import { fileURLToPath } from 'url'
 import path from 'path'
 import multer from 'multer'
-import { login, register } from './Controllers/auth.js'
+import { register } from './Controllers/auth.js'
 import { userRouter } from './routes/userRoutes.js'
 import { updateUser } from './Controllers/user.js'
+import { ticketRouter } from './routes/ticketRoutes.js'
+import { authRouter } from './routes/authRoutes.js'
+import verifyToken from './middlewares/verifyToken.js'
 
 // creation du server
 const app = express()
@@ -28,7 +31,6 @@ app.use(morgan('common'))
 // Definition de l'emplacement des assets
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-console.log(__dirname)
 app.use('/assets', express.static(path.join(__dirname, 'public/assets')))
 
 // Stockage des fichiers
@@ -37,8 +39,12 @@ const storage = multer.diskStorage({
     cb(null, 'public/assets')
   },
   filename: function (req, file, cb) {
-    req.body.avatar = file.avatar
-    cb(null, file.originalname)
+    const { originalname } = file
+    const extension = originalname.slice(
+      ((originalname.lastIndexOf('.') - 1) >>> 0) + 2
+    )
+    req.body.avatar = req.body.nom + '.' + extension
+    cb(null, req.body.nom + '.' + extension)
   },
 })
 
@@ -47,11 +53,12 @@ const upload = multer({ storage })
 
 //les routes avec upload
 app.post('/auth/register', upload.single('avatar'), register)
-app.put('/user/:id', upload.single('avatar'), updateUser)
+app.put('/user/:userId', upload.single('avatar'), updateUser)
 
 //Les routes
-app.post('/auth/login', login)
-app.use('/user', userRouter)
+app.use('/user', verifyToken, userRouter)
+app.use('/ticket', verifyToken, ticketRouter)
+app.use('/auth', authRouter)
 
 app.listen(process.env.PORT, () => {
   console.log(`listening on port ${process.env.PORT}...`)
@@ -61,6 +68,6 @@ try {
   await db.authenticate()
   console.log('Connection Réussie... ')
 } catch (e) {
-  db.close()
   console.log('error : ' + e.message)
+  db.close()
 }

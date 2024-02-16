@@ -1,17 +1,40 @@
 import bcrypt from 'bcrypt'
-import jsonwebtoken from 'jsonwebtoken'
 import { nanoid } from 'nanoid'
-import { UserModele } from '../db/User.js'
+import { UserModele } from '../db/index.js'
+import generateToken from '../utils/generateToken.js'
 
 const register = async (req, res) => {
   try {
-    const { nom, prenom, email, password, telephone, ville, pays, siteWeb } =
-      req.body
+    const {
+      nom,
+      prenom,
+      email,
+      password,
+      ville,
+      pays,
+      siteWeb,
+      telephone,
+      avatar,
+      role = ['participant'],
+    } = req.body
+
+    // si l'utilisateur existe déjà
+    const findUser = await UserModele.findOne({
+      where: {
+        email: email,
+      },
+    })
+    if (findUser) {
+      return res.status(400).json({ message: "l'utilisateur existe déjà" })
+    }
     // gestion password
     const hashpawword = await bcrypt.hash(password, 2)
-    console.log(hashpawword.length)
+
     // gestion codeClient
     const codeClient = nanoid()
+
+    // Gestion des roles
+    const strRoles = role.join(',')
 
     const newUser = UserModele.build({
       nom,
@@ -23,12 +46,22 @@ const register = async (req, res) => {
       pays,
       siteWeb,
       codeClient,
+      role: strRoles,
+      avatar,
     })
+    const user = {
+      nom,
+      prenom,
+      email,
+      ville,
+      pays,
+      siteWeb,
+      role: strRoles,
+    }
     const result = await newUser.save()
-    console.log(result)
-    res.status(201).json(newUser)
+    res.status(201).json(user)
   } catch (err) {
-    res.status(500).json(err)
+    res.status(500).json({ err: err.message })
   }
 }
 
@@ -40,9 +73,24 @@ const login = async (req, res) => {
       return res.status(400).json({ message: 'utilisateur introuvable' })
     } else {
       const isMatch = await bcrypt.compare(password, findUser.password)
-      return isMatch
-        ? res.status(200).json({ user: findUser })
-        : res.status(400).json({ message: 'mot de passe incorrect' })
+      if (isMatch) {
+        const token = generateToken({
+          id: findUser.id,
+          nom: findUser.nom,
+          prenom: findUser.prenom,
+          email: findUser.email,
+          avatar: findUser.avatar,
+          telephone: findUser.telephone,
+          pays: findUser.pays,
+          ville: findUser.ville,
+          codeClient: findUser.codeClient,
+          siteWeb: findUser.siteWeb,
+          role: findUser.role,
+        })
+        return res.status(200).json({ token })
+      } else {
+        return res.status(400).json({ msg: 'mot de passe incorect' })
+      }
     }
   } catch (error) {
     console.log(error)

@@ -3,8 +3,9 @@ import bcrypt from 'bcrypt'
 
 const getUserById = async (req, res) => {
   const { userId } = req.params
+  console.log(userId)
   const user = await UserModele.findByPk(userId)
-  user
+  return user
     ? res.status(200).json({
         nom: user.nom,
         prenom: user.prenom,
@@ -13,6 +14,7 @@ const getUserById = async (req, res) => {
         telephone: user.telephone,
         codeClient: user.codeClient,
         siteWeb: user.siteWeb,
+        role: user.role,
       })
     : res.status(404).json({ msg: 'utilisateur introuvable' })
 }
@@ -37,6 +39,7 @@ const updateUser = async (req, res) => {
   const { userId } = req.params
   const {
     nom: newNom,
+    prenom: newPrenom,
     email: newEmail,
     pays: newPays,
     ville: newville,
@@ -45,7 +48,7 @@ const updateUser = async (req, res) => {
     telephone: newTelephone,
     password: newPassword,
   } = req.body
-  const user = await UserModele.findOne({ where: { userId: userId } })
+  const user = await UserModele.findOne({ where: { id: userId } })
   if (!user) {
     res.status(404).json({ msg: 'user introuvable' })
   } else {
@@ -55,8 +58,10 @@ const updateUser = async (req, res) => {
     user.siteWeb = newSiteWeb
     user.avatar = newAvatar
     user.telephone = newTelephone
+    user.email = newEmail
     const newHash = await bcrypt.hash(newPassword, 2)
     user.password = newHash
+    user.prenom = newPrenom
     user.save()
     return res.status(205).json({ user: user })
   }
