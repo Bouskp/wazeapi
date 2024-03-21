@@ -49,6 +49,7 @@ const register = async (req, res) => {
       role: strRoles,
       avatar,
     })
+
     const user = {
       nom,
       prenom,
